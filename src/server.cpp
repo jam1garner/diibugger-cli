@@ -237,6 +237,37 @@ void WriteCode(u32 address, u32 instr) {
     GLOBALS->ICInvalidateRange(ptr, 4);
 }
 
+const int TYPE_CODE = 0;
+
+void applyModsFile(void* file, u32 length){
+    if(length <= 0x10)
+        return;
+    //If first 4 bytes == "MODS" and is version 1
+    if(*(u32*)(file) == 0x4D4F4453 && *(u32*)(file + 0x4) == 0x1){
+        u32 modEntryCount = *(u32*)(file + 0x8);
+        void* readPointer = (file + 0x10);
+        for(u32 i = 0; i < modEntryCount && readPointer < (file + length); i++){
+            u32 type = *(u32*)readPointer;
+            readPointer += 4;
+            switch(type){
+                //Write code to a memory address
+                case TYPE_CODE:
+                    {
+                        void* copyDestAddress = readPointer + 0xA0000000;
+                        u32 copySize = (*(u32*)(readPointer+4)) * 4;
+                        readPointer += 8;
+                        memcpy((char *)copyDestAddress, (const char *)readPointer, copySize);
+                        readPointer += copySize;
+                    }
+                    break;
+                default:
+                    //Since entries are in line and not constant in length, we can't continue running for unknown types
+                    return;
+            }
+        }
+    }
+}
+
 bool compare(const char *one, const char *two, int length) {
     for (int i = 0; i < length; i++) {
         if (one[i] != two[i]) return false;
@@ -1011,6 +1042,31 @@ int RPCServer(int intArg, void *ptrArg) {
                 }
             }
 
+            else if(cmd == 17){//Search memory
+                u32* start = (u32*)recvword(client);
+                u32 length = recvword(client);
+                u32 value = recvword(client);
+                bool found = false;
+                for(int i = 0; i < length; i++){
+                    if(start[i] == value){
+                        u32* location = start + (i * sizeof(u32) / 4);
+                        sendall(client, &location, sizeof(u32));
+                        found = true;
+                        break;
+                    }
+                }
+                int zero = 0;
+                if(!found)
+                    sendall(client, &zero, sizeof(u32));
+            }
+
+            else if(cmd == 18){//Apply mods file
+                u32 dataSize = recvword(client);
+                void* file = a->MEMAllocFromDefaultHeapEx(dataSize, 0x10);
+                recvall(client, file, dataSize);
+                applyModsFile(file, dataSize);
+            }
+
             else if(cmd == 0xFE){
                 a->mscStep = true;
             }
@@ -1089,7 +1145,7 @@ extern "C" int _main(int argc, char *argv[]) {
     if (titleId == 0x0005001010040100 || titleId == 0x0005001010040200 || titleId == 0x0005001010040000) {
         return main(argc, argv);
     }
-    
+
     globals a __attribute__((aligned(8)));
     memset((char *)&a, 0, sizeof(globals));
 

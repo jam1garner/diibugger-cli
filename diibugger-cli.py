@@ -282,6 +282,20 @@ class PyBugger:
                 bytesDumped += len(data)
                 task.update(bytesDumped)
 
+    def search(self, startAddress, endAddress, value):
+        length = int((endAddress - startAddress) / 4)
+        self.sendall(b"\x11")
+        self.sendall(struct.pack(">L", startAddress))
+        self.sendall(struct.pack(">L", length))
+        self.sendall(struct.pack(">L", value))
+        location = struct.unpack(">L", self.recvall(4))
+        return location
+
+    def loadMods(self, fileBytes):
+        self.sendall(b"\x12")
+        self.sendall(struct.pack(">L", len(fileBytes)))
+        self.sendall(fileBytes)
+
     def getModuleName(self):
         self.sendall(b"\x0D")
         length = struct.unpack(">I", self.recvall(4))[0]
@@ -322,9 +336,14 @@ exceptionState = ExceptionState()
 bugger = PyBugger()
 
 while True:
-    userInput = input("> ").strip()
-    splitCmd = userInput.split(" ")
-    cmd = splitCmd[0].lower()
+    try:
+        userInput = input("> ").strip()
+        splitCmd = userInput.split(" ")
+        cmd = splitCmd[0].lower()
+    except KeyboardInterrupt:
+        print("") #Just to prevent issues with early disconnects
+    except Exception as e:
+        print(e)
     try:
         if cmd == "help":
             print("                        Command list:")
@@ -345,6 +364,8 @@ while True:
             print("     aliases: preview, r")
             print("dump [address] [length] [filename]")
             print("     Dumps a certain area of memory to file")
+            print("search [startAddress] [endAddress] [value]")
+            print("     Search a range of memory for a uin32 value")
             print("word [address] [value]")
             print("     Writes a uint32 to an address")
             print("     aliases: ww, writeword, int")
@@ -377,8 +398,10 @@ while True:
             print("step (or s)")
             print("     Step from breakpoint to next line")
         elif cmd == "exit":
-            bugger.close()
-            break
+            try:
+                bugger.close()
+            finally:
+                break
         elif cmd == "connect":
             bugger.connect(splitCmd[1])
             if bugger.connected:
@@ -423,6 +446,15 @@ while True:
                 filename = filename.strip().strip('"').strip("'")
                 with open(filename, 'wb') as f:
                     f.write(bugger.read(address, length))
+        elif cmd == "search":
+            startAddress = int(splitCmd[1],16)
+            endAddress = int(splitCmd[2], 16)
+            value = int(splitCmd[3], 16)
+            address = bugger.search(startAddress, endAddress, value)
+            if address == 0:
+                print("Not found in range")
+            else:
+                print("Located at %08X" % address)
         elif cmd == "word" or cmd == "ww" or cmd == "writeword" or cmd == "int":
             address = int(splitCmd[1],16)
             value = int(splitCmd[2], 16)
@@ -488,6 +520,14 @@ while True:
             bugger.stepBreak()
         elif cmd == "stepover" or cmd == "so":
             bugger.stepOver()
+        elif cmd == "load":
+            filename = cmd[5:].strip().strip('"').strip("'").strip()
+            with open(filename, 'rb') as f:
+                fileBytes = f.read()
+                if fileBytes[4] == b'MODS':
+                    bugger.loadMods(fileBytes)
+                else:
+                    print("Not a valid mods file")
         else:
             print("Invalid command")
         if bugger.connected:
