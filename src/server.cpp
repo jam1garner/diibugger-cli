@@ -817,7 +817,7 @@ int RPCServer(int intArg, void *ptrArg) {
                 break;
             }
 
-            /*else if (cmd == 2) { //Read
+            else if (cmd == 2) { //Read
                 u32 addr = recvword(client);
                 u32 num = recvword(client);
 
@@ -854,7 +854,7 @@ int RPCServer(int intArg, void *ptrArg) {
                 else WriteCode(addr, instr);
             }
 
-            else if (cmd == 5) { //Get thread list
+            /*else if (cmd == 5) { //Get thread list
                 //Might need OSDisableInterrupts here?
                 char buffer[0x1000]; //This should be enough
                 u32 offset = 0;
@@ -878,7 +878,7 @@ int RPCServer(int intArg, void *ptrArg) {
 
                 sendall(client, &offset, 4);
                 sendall(client, buffer, offset);
-            }
+            }*/
 
             else if (cmd == 6) { //Push message
                 OSMessage message;
@@ -905,7 +905,7 @@ int RPCServer(int intArg, void *ptrArg) {
                 }
             }
 
-            else if (cmd == 8) { //Get stack trace
+            /*else if (cmd == 8) { //Get stack trace
                 u32 sp = a->crashContext.gpr[1];
                 u32 index = 0;
                 u32 stackTrace[30];
@@ -924,7 +924,7 @@ int RPCServer(int intArg, void *ptrArg) {
             else if (cmd == 9) { //Poke registers
                 recvall(client, &a->crashContext.gpr, 4 * 32);
                 recvall(client, &a->crashContext.fpr, 8 * 32);
-            }
+            }*/
 
             else if (cmd == 10) { //Toggle breakpoint
                 u32 address = recvword(client);
@@ -972,7 +972,7 @@ int RPCServer(int intArg, void *ptrArg) {
                 sendall(client, &terminator, 4);
             }
 
-            else if (cmd == 12) { //Dump file
+            /*else if (cmd == 12) { //Dump file
                 char path[640] = {0};
                 u32 pathlen = recvword(client);
                 if (pathlen < 640) {
@@ -1008,7 +1008,7 @@ int RPCServer(int intArg, void *ptrArg) {
                 else {
                     a->OSFatal("pathlen >= 640");
                 }
-            }
+            }*/
 
             else if (cmd == 13) { //Get module name
                 char name[100] = {0};
@@ -1020,7 +1020,7 @@ int RPCServer(int intArg, void *ptrArg) {
                 sendall(client, name, length);
             }
 
-            else if (cmd == 14) { //Set patch files
+            /*else if (cmd == 14) { //Set patch files
                 if (a->patchFiles) {
                     a->MEMFreeToDefaultHeap(a->patchFiles);
                 }
@@ -1041,7 +1041,7 @@ int RPCServer(int intArg, void *ptrArg) {
                     a->MEMFreeToDefaultHeap(a->patchFiles);
                     a->patchFiles = 0;
                 }
-            }
+            }*/
 
             else if(cmd == 17){//Search memory
                 u32* start = (u32*)recvword(client);
@@ -1059,7 +1059,7 @@ int RPCServer(int intArg, void *ptrArg) {
                 int zero = 0;
                 if(!found)
                     sendall(client, &zero, sizeof(u32));
-            }*/
+            }
 
             else if(cmd == 18){//Apply mods file
                 u32 dataSize = recvword(client);
