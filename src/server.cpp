@@ -292,7 +292,7 @@ bool IsServerFile(const char *path) {
     return false;
 }
 
-extern "C" {
+/*extern "C" {
 
     int Patch_FSGetStat(FSClient *client, FSCmdBlock *block, const char *path, FSStat *stat, int errHandling) {
         INIT_FS_PATCH
@@ -388,7 +388,7 @@ extern "C" {
         return 0;
     }
 
-}
+}*/
 
 void FatalCrashHandler() {
     globals *a = GLOBALS;
@@ -781,6 +781,7 @@ int RPCServer(int intArg, void *ptrArg) {
 
         while (true) {
             u8 cmd = recvbyte(client);
+
             if (cmd == 1) { //Close
                 //Remove all breakpoints
                 for (int i = 0; i < 10; i++) {
@@ -816,7 +817,7 @@ int RPCServer(int intArg, void *ptrArg) {
                 break;
             }
 
-            else if (cmd == 2) { //Read
+            /*else if (cmd == 2) { //Read
                 u32 addr = recvword(client);
                 u32 num = recvword(client);
 
@@ -1058,7 +1059,7 @@ int RPCServer(int intArg, void *ptrArg) {
                 int zero = 0;
                 if(!found)
                     sendall(client, &zero, sizeof(u32));
-            }
+            }*/
 
             else if(cmd == 18){//Apply mods file
                 u32 dataSize = recvword(client);
@@ -1101,7 +1102,7 @@ void WriteScreen(const char *msg) {
     }
 }
 
-bool WaitForConnection() {
+/*bool WaitForConnection() {
     globals *a = GLOBALS;
 
     a->OSScreenInit();
@@ -1125,7 +1126,7 @@ bool WaitForConnection() {
         a->VPADRead(0, &status, 1, &error);
     }
     return false;
-}
+}*/
 
 void InitializeDebugger() {
     //if (!WaitForConnection()) {
