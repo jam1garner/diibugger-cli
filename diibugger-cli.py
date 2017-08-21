@@ -513,7 +513,7 @@ while True:
                 print('%08X'%bp)
         elif cmd == "breakpoint" or cmd == "bp":
             address = int(splitCmd[1],16)
-            bugger.toogleBreakpoint(address)
+            bugger.toggleBreakPoint(address)
         elif cmd == "continue" or cmd == "c":
             bugger.continueBreak()
         elif cmd == "step" or cmd == "s":
@@ -521,10 +521,10 @@ while True:
         elif cmd == "stepover" or cmd == "so":
             bugger.stepOver()
         elif cmd == "load":
-            filename = cmd[5:].strip().strip('"').strip("'").strip()
+            filename = userInput[5:]
             with open(filename, 'rb') as f:
                 fileBytes = f.read()
-                if fileBytes[4] == b'MODS':
+                if fileBytes[:4] == b'MODS':
                     bugger.loadMods(fileBytes)
                 else:
                     print("Not a valid mods file")

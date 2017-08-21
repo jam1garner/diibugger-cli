@@ -1041,7 +1041,7 @@ int RPCServer(int intArg, void *ptrArg) {
                     a->MEMFreeToDefaultHeap(a->patchFiles);
                     a->patchFiles = 0;
                 }
-            }*/
+            }*
 
             else if(cmd == 17){//Search memory
                 u32* start = (u32*)recvword(client);
