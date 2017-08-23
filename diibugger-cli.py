@@ -92,11 +92,14 @@ class PyBugger:
             Message.GetStatFile: self.handleGetStatFile
         }
 
+        self.silent = False
+
     def handleException(self, msg):
         exceptionState.load(msg.data, msg.type)
-        print('+----------------------------------+')
-        print('|Exception type %s has occured|'%exceptionState.exceptionName)
-        print('+----------------------------------+')
+        if not self.silent:
+            print('+----------------------------------+')
+            print('|Exception type %s has occured|'%exceptionState.exceptionName)
+            print('+----------------------------------+')
 
     def handleGetStat(self, msg):
         gamePath = msg.data.decode("ascii")
@@ -399,7 +402,10 @@ while True:
             print("     Step from breakpoint to next line")
         elif cmd == "exit":
             try:
-                bugger.close()
+                if bugger.connected:
+                    for i in bugger.breakPoints:
+                        bugger.toggleBreakPoint(i)
+                    bugger.close()
             finally:
                 break
         elif cmd == "connect":
@@ -415,9 +421,16 @@ while True:
         elif not bugger.connected:
             print("Diibugger server not connected, use 'connect [ip]' to connect")
         elif cmd == "close":
-            bugger.close()
+            if bugger.connected:
+                for i in bugger.breakPoints:
+                    bugger.toggleBreakPoint(i)
+                bugger.close()
         elif cmd == "read" or cmd == "preview" or cmd == "r":
-            address = int(splitCmd[1],16)
+            addressStr = splitCmd[1]
+            if addressStr[0] == 'r':
+                address = exceptionState.gpr[int(addressStr[1:])]
+            else:
+                address = int(addressStr, 16)
             length = 0x30
             if len(splitCmd) >= 3:
                 length = int(splitCmd[2], 16)
@@ -438,7 +451,11 @@ while True:
             if len(splitCmd) <= 3:
                 print("Not enough arguments\n\tdump [address] [length] [file]")
             else:
-                address = int(splitCmd[1],16)
+                addressStr = splitCmd[1]
+                if addressStr[0] == 'r':
+                    address = exceptionState.gpr[int(addressStr[1:])]
+                else:
+                    address = int(addressStr, 16)
                 length = int(splitCmd[2], 16)
                 filename = ""
                 for i in splitCmd[3:]:
@@ -456,18 +473,34 @@ while True:
             else:
                 print("Located at %08X" % address)
         elif cmd == "word" or cmd == "ww" or cmd == "writeword" or cmd == "int":
-            address = int(splitCmd[1],16)
+            addressStr = splitCmd[1]
+            if addressStr[0] == 'r':
+                address = exceptionState.gpr[int(addressStr[1:])]
+            else:
+                address = int(addressStr, 16)
             value = int(splitCmd[2], 16)
             bugger.write(address, struct.pack(">L", value))
         elif cmd == "float":
-            address = int(splitCmd[1],16)
+            addressStr = splitCmd[1]
+            if addressStr[0] == 'r':
+                address = exceptionState.gpr[int(addressStr[1:])]
+            else:
+                address = int(addressStr, 16)
             value = float(splitCmd[2])
             bugger.write(address, struct.pack(">f", value))
         elif cmd == "hex" or cmd == "bytes" or cmd == "w" or cmd == "writebytes":
-            address = int(splitCmd[1],16)
+            addressStr = splitCmd[1]
+            if addressStr[0] == 'r':
+                address = exceptionState.gpr[int(addressStr[1:])]
+            else:
+                address = int(addressStr, 16)
             bugger.write(address, binascii.unhexlify(splitCmd[2]))
         elif cmd == "ppc":
-            address = int(splitCmd[1],16)
+            addressStr = splitCmd[1]
+            if addressStr[0] == 'r':
+                address = exceptionState.gpr[int(addressStr[1:])]
+            else:
+                address = int(addressStr, 16)
             length = 4
             if len(splitCmd) > 2:
                 length = int(splitCmd[2], 16)
@@ -512,12 +545,21 @@ while True:
             for bp in bugger.breakPoints:
                 print('%08X'%bp)
         elif cmd == "breakpoint" or cmd == "bp":
-            address = int(splitCmd[1],16)
+            addressStr = splitCmd[1]
+            if addressStr[0] == 'r':
+                address = exceptionState.gpr[int(addressStr[1:])]
+            else:
+                address = int(addressStr, 16)
             bugger.toggleBreakPoint(address)
         elif cmd == "continue" or cmd == "c":
             bugger.continueBreak()
         elif cmd == "step" or cmd == "s":
             bugger.stepBreak()
+            time.sleep(0.2)
+            bugger.silent = True
+            bugger.updateMessages()
+            bugger.silent = False
+            print('Stepped to %08X' % exceptionState.srr0)
         elif cmd == "stepover" or cmd == "so":
             bugger.stepOver()
         elif cmd == "load":
