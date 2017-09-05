@@ -4,14 +4,14 @@
 #Define a macro so we don't have to repeat the same
 #code in every single function we're patching
 .macro patch name, stackOffs, realOffs, returnOffs
-    #mr r5, r31
-    #bl Patch_\name      #Call our own implementation
-    #cmpwi r3, -1        #Is it a patched file?
-    #bne return_\name    #If yes, return
+    mr r5, r31
+    bl Patch_\name      #Call our own implementation
+    cmpwi r3, -1        #Is it a patched file?
+    bne return_\name    #If yes, return
 
-    #mr r3, r29          #Otherwise, restore
-    #mr r4, r30          #a few registers
-    #addi r5, r1, \stackOffs
+    mr r3, r29          #Otherwise, restore
+    mr r4, r30          #a few registers
+    addi r5, r1, \stackOffs
     ba \name + \realOffs    #And call the real function
 
 return_\name:

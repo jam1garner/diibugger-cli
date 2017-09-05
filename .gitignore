@@ -1,2 +1,9 @@
 codes.bin
 log.txt
+ip.txt
+*.elf
+*.o
+*.d
+*.bin
+__pycache__
+build

@@ -1,6 +1,11 @@
 
 #include "cafe.h"
 
+typedef unsigned char u8;
+typedef unsigned short u16;
+typedef unsigned int u32;
+typedef unsigned long long u64;
+
 extern int (* const entryPoint)(int argc, char *argv[]);
 
 #define main (*entryPoint)
@@ -237,37 +242,6 @@ void WriteCode(u32 address, u32 instr) {
     GLOBALS->ICInvalidateRange(ptr, 4);
 }
 
-const int TYPE_CODE = 0;
-
-void applyModsFile(void* file, u32 length){
-    if(length <= 0x10)
-        return;
-    //If first 4 bytes == "MODS" and is version 1
-    if(*(u32*)(file) == 0x4D4F4453 && *(u32*)(file + 0x4) == 0x1){
-        u32 modEntryCount = *(u32*)(file + 0x8);
-        void* readPointer = (file + 0x10);
-        for(u32 i = 0; i < modEntryCount && readPointer < (file + length); i++){
-            u32 type = *(u32*)readPointer;
-            readPointer += 4;
-            switch(type){
-                //Write code to a memory address
-                case TYPE_CODE:
-                    {
-                        void* copyDestAddress = readPointer + 0xA0000000;
-                        u32 copySize = (*(u32*)(readPointer+4)) * 4;
-                        readPointer += 8;
-                        memcpy((char *)copyDestAddress, (const char *)readPointer, copySize);
-                        readPointer += copySize;
-                    }
-                    break;
-                default:
-                    //Since entries are in line and not constant in length, we can't continue running for unknown types
-                    return;
-            }
-        }
-    }
-}
-
 bool compare(const char *one, const char *two, int length) {
     for (int i = 0; i < length; i++) {
         if (one[i] != two[i]) return false;
@@ -292,9 +266,9 @@ bool IsServerFile(const char *path) {
     return false;
 }
 
-/*extern "C" {
+extern "C" {
 
-    int Patch_FSGetStat(FSClient *client, FSCmdBlock *block, const char *path, FSStat *stat, int errHandling) {
+    int Patch_FSGetStat(FSClient *client, FSCmdBlock *block, const char *path, FSStat_ *stat, int errHandling) {
         INIT_FS_PATCH
         if (!IsServerFile(path)) return -1;
 
@@ -304,7 +278,7 @@ bool IsServerFile(const char *path) {
         message.data1 = strlen(path);
         a->OSSendMessage(&a->serverQueue, &message, OS_MESSAGE_BLOCK);
         a->OSReceiveMessage(&a->fileQueue, &message, OS_MESSAGE_BLOCK);
-        memset((char *)stat, 0, sizeof(FSStat));
+        memset((char *)stat, 0, sizeof(FSStat_));
         stat->size = message.data0;
         return 0;
     }
@@ -373,7 +347,7 @@ bool IsServerFile(const char *path) {
         return 0;
     }
 
-    int Patch_FSGetStatFile(FSClient *client, FSCmdBlock *block, int handle, FSStat *stat, int errHandling) {
+    int Patch_FSGetStatFile(FSClient *client, FSCmdBlock *block, int handle, FSStat_ *stat, int errHandling) {
         INIT_FS_PATCH
         if (handle != a->fileHandle) return -1;
 
@@ -388,7 +362,7 @@ bool IsServerFile(const char *path) {
         return 0;
     }
 
-}*/
+}
 
 void FatalCrashHandler() {
     globals *a = GLOBALS;
@@ -760,7 +734,7 @@ int RPCServer(int intArg, void *ptrArg) {
         result = a->SOSetSockOpt(socket, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, 4);
         CHECK_SOCKET(result, "SOSetSockOpt")
 
-        sockaddr serverAddr;
+        sockaddr_ serverAddr;
         serverAddr.sin_family = AF_INET;
         serverAddr.sin_port = 1559;
         serverAddr.sin_addr = 0;
@@ -781,7 +755,6 @@ int RPCServer(int intArg, void *ptrArg) {
 
         while (true) {
             u8 cmd = recvbyte(client);
-
             if (cmd == 1) { //Close
                 //Remove all breakpoints
                 for (int i = 0; i < 10; i++) {
@@ -854,7 +827,7 @@ int RPCServer(int intArg, void *ptrArg) {
                 else WriteCode(addr, instr);
             }
 
-            /*else if (cmd == 5) { //Get thread list
+            else if (cmd == 5) { //Get thread list
                 //Might need OSDisableInterrupts here?
                 char buffer[0x1000]; //This should be enough
                 u32 offset = 0;
@@ -878,7 +851,7 @@ int RPCServer(int intArg, void *ptrArg) {
 
                 sendall(client, &offset, 4);
                 sendall(client, buffer, offset);
-            }*/
+            }
 
             else if (cmd == 6) { //Push message
                 OSMessage message;
@@ -905,7 +878,7 @@ int RPCServer(int intArg, void *ptrArg) {
                 }
             }
 
-            /*else if (cmd == 8) { //Get stack trace
+            else if (cmd == 8) { //Get stack trace
                 u32 sp = a->crashContext.gpr[1];
                 u32 index = 0;
                 u32 stackTrace[30];
@@ -924,7 +897,7 @@ int RPCServer(int intArg, void *ptrArg) {
             else if (cmd == 9) { //Poke registers
                 recvall(client, &a->crashContext.gpr, 4 * 32);
                 recvall(client, &a->crashContext.fpr, 8 * 32);
-            }*/
+            }
 
             else if (cmd == 10) { //Toggle breakpoint
                 u32 address = recvword(client);
@@ -950,7 +923,7 @@ int RPCServer(int intArg, void *ptrArg) {
 
                     int error;
                     int handle;
-                    FSDirEntry entry;
+                    FSDirEntry_ entry;
 
                     error = a->FSOpenDir(&a->fileClient, &a->fileBlock, path, &handle, -1);
                     CHECK_ERROR(error, "FSOpenDir")
@@ -972,7 +945,7 @@ int RPCServer(int intArg, void *ptrArg) {
                 sendall(client, &terminator, 4);
             }
 
-            /*else if (cmd == 12) { //Dump file
+            else if (cmd == 12) { //Dump file
                 char path[640] = {0};
                 u32 pathlen = recvword(client);
                 if (pathlen < 640) {
@@ -982,7 +955,7 @@ int RPCServer(int intArg, void *ptrArg) {
                     error = a->FSOpenFile(&a->fileClient, &a->fileBlock, path, "r", &handle, -1);
                     CHECK_ERROR(error, "FSOpenFile")
 
-                    FSStat stat;
+                    FSStat_ stat;
                     error = a->FSGetStatFile(&a->fileClient, &a->fileBlock, handle, &stat, -1);
                     CHECK_ERROR(error, "FSGetStatFile")
 
@@ -1008,7 +981,7 @@ int RPCServer(int intArg, void *ptrArg) {
                 else {
                     a->OSFatal("pathlen >= 640");
                 }
-            }*/
+            }
 
             else if (cmd == 13) { //Get module name
                 char name[100] = {0};
@@ -1020,7 +993,7 @@ int RPCServer(int intArg, void *ptrArg) {
                 sendall(client, name, length);
             }
 
-            /*else if (cmd == 14) { //Set patch files
+            else if (cmd == 14) { //Set patch files
                 if (a->patchFiles) {
                     a->MEMFreeToDefaultHeap(a->patchFiles);
                 }
@@ -1041,31 +1014,6 @@ int RPCServer(int intArg, void *ptrArg) {
                     a->MEMFreeToDefaultHeap(a->patchFiles);
                     a->patchFiles = 0;
                 }
-            }*
-
-            else if(cmd == 17){//Search memory
-                u32* start = (u32*)recvword(client);
-                u32 length = recvword(client);
-                u32 value = recvword(client);
-                bool found = false;
-                for(int i = 0; i < length; i++){
-                    if(start[i] == value){
-                        u32* location = start + (i * sizeof(u32) / 4);
-                        sendall(client, &location, sizeof(u32));
-                        found = true;
-                        break;
-                    }
-                }
-                int zero = 0;
-                if(!found)
-                    sendall(client, &zero, sizeof(u32));
-            }
-
-            else if(cmd == 18){//Apply mods file
-                u32 dataSize = recvword(client);
-                void* file = a->MEMAllocFromDefaultHeapEx(dataSize, 0x10);
-                recvall(client, file, dataSize);
-                applyModsFile(file, dataSize);
             }
 
             else if(cmd == 0xFE){
@@ -1102,7 +1050,7 @@ void WriteScreen(const char *msg) {
     }
 }
 
-/*bool WaitForConnection() {
+bool WaitForConnection() {
     globals *a = GLOBALS;
 
     a->OSScreenInit();
@@ -1126,7 +1074,7 @@ void WriteScreen(const char *msg) {
         a->VPADRead(0, &status, 1, &error);
     }
     return false;
-}*/
+}
 
 void InitializeDebugger() {
     //if (!WaitForConnection()) {
@@ -1141,12 +1089,6 @@ void InitializeDebugger() {
 bool ProgramHandler_Initialize(OSContext *context) { HANDLE_CRASH(OS_EXCEPTION_PROGRAM, InitializeDebugger) }
 
 extern "C" int _main(int argc, char *argv[]) {
-    u64 titleId = *((u64*)0x10013C10);
-
-    if (titleId == 0x0005001010040100 || titleId == 0x0005001010040200 || titleId == 0x0005001010040000) {
-        return main(argc, argv);
-    }
-
     globals a __attribute__((aligned(8)));
     memset((char *)&a, 0, sizeof(globals));
 
