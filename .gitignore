@@ -7,3 +7,4 @@ ip.txt
 *.bin
 __pycache__
 build
+src/code.h

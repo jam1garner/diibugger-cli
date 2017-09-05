@@ -9,9 +9,5 @@ powerpc-eabi-gcc %CFLAG% -c -o server.o server.cpp
 powerpc-eabi-ld -o server.bin -T server.ld server.o server_entrypoint.o
 python build_header.py
 
-powerpc-eabi-as -o installer_entrypoint.o installer_entrypoint.S
-powerpc-eabi-gcc %CFLAG% -c -o installer.o installer.cpp
-powerpc-eabi-ld -o code.bin installer.o -T installer.ld installer_entrypoint.o
-
-copy code.bin C:\xampp\htdocs\diibugger\code550.bin
 cd ..
+make
