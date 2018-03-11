@@ -550,7 +550,13 @@ while True:
                 address = exceptionState.gpr[int(addressStr[1:])]
             else:
                 address = int(addressStr, 16)
-            bugger.toggleBreakPoint(address)
+            if address <= int(167772160):
+                ans = input("Warning: the current value provided appears to not be valid (it is below 0xA000000). Are you sure you didn't mean to do 0x{0:X}? \n\nIf you do are not sure if your provided address is valid, or you meant to do the above, type 'fix'. \n\nIf you wish to still pass your provided value as a breakpoint, type 'continue'. \n\nIf you wish to not continue passing the breakpoint at all, just hit enter.\n".format(address + 167772160))
+                if ans == "fix":
+                    address += 167772160
+                    bugger.toggleBreakPoint(address)
+                elif ans == "continue":
+                    bugger.toggleBreakPoint(address)
         elif cmd == "continue" or cmd == "c":
             bugger.continueBreak()
         elif cmd == "step" or cmd == "s":
