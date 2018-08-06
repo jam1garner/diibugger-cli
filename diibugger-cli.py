@@ -394,7 +394,7 @@ while True:
             print("     this is run after every other command as well")
             print("breakpoints (or bps)")
             print("     List breakpoints")
-            print("breapoint [address] (or bp)")
+            print("breakpoint [address] (or bp)")
             print("     Toggle breakpoint")
             print("continue (or c)")
             print("     Continue past breakpoint")
