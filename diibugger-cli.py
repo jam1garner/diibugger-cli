@@ -387,7 +387,7 @@ while True:
             print("stackdump [stackNum] [filename]")
             print("     Dumps entire thread's stack to file (Note: get stacknum from \"threads\")")
             print("     aliases: sd")
-            print("registers (or reg)")
+            print("registers (or regs)")
             print("     Print registers")
             print("update (or u)")
             print("     Checks for exceptions")
